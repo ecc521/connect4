@@ -126,7 +126,7 @@ int Solver::solve(const Position &P, bool weak) {
 }
 
 std::vector<int> Solver::analyze(const Position &P, bool weak) {
-  std::vector<int> scores(Position::WIDTH, Solver::INVALID_MOVE);
+  std::vector<int> scores(Position::WIDTH, -1000);
   for (int col = 0; col < Position::WIDTH; col++)
     if (P.canPlay(col)) {
       if(P.isWinningMove(col)) scores[col] = (Position::WIDTH * Position::HEIGHT + 1 - P.nbMoves()) / 2;
