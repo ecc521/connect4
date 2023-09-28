@@ -7,6 +7,13 @@ function allocateString(str) {
 }
 
 function analyzePosition(positionStr) {
+    //If the position is invalid, analyzePosition will return "Invalid Move #__. Last Valid Position _______."
+    //If the position is won, analyzePosition will return "Won on Move #__. Ending Position ________."
+    //If the position is valid, but not won, analyzePosition will return a string of numbers, separated by spaces. 
+        //Positive numbers mean going to win n moves BEFORE board fills up
+        //Negative numbers mean going to lose n moves before board fills up. 
+        //-1000 means the move is invalid (column is full).
+
     let allocatedMemory = allocateString(positionStr)
 
     let outputPointer = Module._analyzePosition(allocatedMemory)
@@ -19,16 +26,24 @@ function analyzePosition(positionStr) {
 }
 
 
+function loadBook(arrayBuffer) {
+    let bookFilePath = "book.book"
+
+    Module.FS.writeFile(bookFilePath, arrayBuffer)
+
+    let allocatedMemory = allocateString(bookFilePath)
+
+    let outputPointer = Module._loadBook(allocatedMemory)
+
+    Module._free(allocatedMemory)
+    Module._free(outputPointer)
+
+    return;
+}
+
+
 function evaluatePosition(positionStr) {
-    //If the position is invalid, analyzePosition will return "Invalid Move #__. Last Valid Position _______."
-    //If the position is won, analyzePosition will return "Won on Move #__. Ending Position ________."
-    //If the position is valid, but not won, analyzePosition will return a string of numbers, separated by spaces. 
-        //Positive numbers mean going to win n moves BEFORE board fills up
-        //Negative numbers mean going to lose n moves before board fills up. 
-        //-1000 means the move is invalid (column is full).
-
     let resStr = analyzePosition(positionStr);
-
 
     let position = positionStr
     let lastValidPosition = positionStr
@@ -131,27 +146,6 @@ function evaluatePosition(positionStr) {
         moveEvaluations,
         bestMove,
     }
-
-
-}
-
-
-function loadBook(bookFilePath) {
-    let arrayBuffer = new Uint8Array(fs.readFileSync(bookFilePath).buffer)
-
-    //bookFilePath is technically irrelevant -
-    //We are using the virtual file system, so we can call bookFilePath anything, as long as we pass the same string to Module._loadBook. 
-
-    Module.FS.writeFile(bookFilePath, arrayBuffer)
-
-    let allocatedMemory = allocateString(bookFilePath)
-
-    let outputPointer = Module._loadBook(allocatedMemory)
-
-    Module._free(allocatedMemory)
-    Module._free(outputPointer)
-
-    return;
 }
 
 
@@ -175,7 +169,8 @@ Module.onRuntimeInitialized = function() {
 
 
         // console.log(loadBook("7x6_small.book"))
-                console.log(loadBook("7x6.book"))
+        let bookBuffer = new Uint8Array(fs.readFileSync("7x6.book").buffer)
+        console.log(loadBook(bookBuffer))
 
         console.timeEnd("Loading Book")
 
