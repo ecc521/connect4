@@ -1,4 +1,4 @@
-let Module = require("./analyze.js")
+let Module = require("./build/analyze.js")
 const fs = require("fs")
 
 function allocateString(str) {    
