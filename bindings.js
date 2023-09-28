@@ -1,12 +1,18 @@
 let Module = require("./build/analyze.js")
 const fs = require("fs")
 
+let bookHasBeenLoaded = false; //Used to warn the user if they try to analyze a small position with no book. 
+
 function allocateString(str) {    
     let allocatedMemory = Module.allocateUTF8(str)
     return allocatedMemory
 }
 
 function analyzePosition(positionStr) {
+    if (!bookHasBeenLoaded) {
+        console.warn("WARNING: You have not loaded a book. This will result in very slow analysis.")
+    }
+
     //If the position is invalid, analyzePosition will return "Invalid Move #__. Last Valid Position _______."
     //If the position is won, analyzePosition will return "Won on Move #__. Ending Position ________."
     //If the position is valid, but not won, analyzePosition will return a string of numbers, separated by spaces. 
@@ -37,6 +43,8 @@ function loadBook(arrayBuffer) {
 
     Module._free(allocatedMemory)
     Module._free(outputPointer)
+
+    bookHasBeenLoaded = true;
 
     return;
 }
@@ -151,63 +159,18 @@ function evaluatePosition(positionStr) {
 }
 
 
+let concludeInitialize = null;
+let onInitialized = new Promise((resolve) => {concludeInitialize = resolve})
 Module.onRuntimeInitialized = function() {
-
-    console.time("Loading Book")
-
-    //The bigger book actually DRAMATICALLY improves some performance, but it takes a lot of memory (~100MB), 
-    //and around 24MB more storage (the books really don't compress)
-
-    //The small book is, at a minimum, absolutely necessary. Otherwise, some combinations just take too long to compute. 
-    //The big book can cause OOM crashes (if <200MB ram on device
-    //so we want a fallback system or at least something for web. 
-
-
-
-    // let bookBuffer = new Uint8Array(fs.readFileSync("7x6_small.book").buffer)
-    let bookBuffer = new Uint8Array(fs.readFileSync("7x6.book").buffer)
-    console.log(loadBook(bookBuffer))
-
-    console.timeEnd("Loading Book")
-
-
-    console.time("Test Cases")
-
-    console.log(analyzePosition("7422341735647741166133573473242566"))
-    console.log(analyzePosition("742234173"))
-
-    console.log(analyzePosition("742234174"))
-
-
-
-
-    console.timeEnd("Test Cases")
-
-
-    console.log(evaluatePosition("")) //Red loses in 21 moves. 
-
-    console.log(evaluatePosition("1")) //Red wins in 20 moves
-    console.log(evaluatePosition("2")) //Red wins in 21 moves
-    console.log(evaluatePosition("3")) //Draw
-    console.log(evaluatePosition("4")) //Red loses in 20 moves
-    console.log(evaluatePosition("5")) //Draw
-    console.log(evaluatePosition("6")) //Red wins in 21 moves
-    console.log(evaluatePosition("7")) //Red wins in 20 moves
-
-
-    console.log(evaluatePosition("44444433")) //Yellow wins in 2 moves
-    console.log(evaluatePosition("4444443")) //Yellow wins in 17 moves
-    console.log(evaluatePosition("44444432")) //Yellow wins in 17 moves
-
-    console.log(evaluatePosition("4444443322")) //Yellow wins next move
-    console.log(evaluatePosition("44444433225")) //Yellow won
-
-    console.log(evaluatePosition("333333556444445666664255577777722222111111")) //Draw (game over)
-
-    console.log(evaluatePosition("444444433225")) //Invalid Combo
+    concludeInitialize();
 }
 
 
 
+module.exports = {
+    onInitialized,
+    evaluatePosition,
+    loadBook,
+}
 
 
