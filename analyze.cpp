@@ -49,7 +49,7 @@ EMSCRIPTEN_KEEPALIVE char * analyzePosition(const char* positionCharArr) {
     int lastColPlayed = positionString[P.nbMoves()] - '1';
 
     if (P.isWinningMove(lastColPlayed)) {
-      output = "Won on Move #" + std::to_string(P.nbMoves() + 1) + ". Ending Position " + positionString.substr(0, P.nbMoves()) + ".";
+      output = "Won on Move #" + std::to_string(P.nbMoves() + 1) + ". Ending Position " + positionString.substr(0, P.nbMoves() + 1) + ".";
     }
 
 

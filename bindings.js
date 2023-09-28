@@ -19,49 +19,118 @@ function analyzePosition(positionStr) {
 }
 
 
-//TODO: Now let's write a system to take positionStr and return a much more useful object.
-var a = {
-    result: "D", //D means draw, Y means yellow won, R means red won.
-    evaluation: "D", //D means draw, Y11 means yellow wins in 11 moves, R7 means red wins in 7 moves. 
-    moveEvaluations: ["D", "Y11", "R7", "R1", "Y7", null, "D"], //The evaluation of each move. Null means move not legal
-    bestMove: 1, //The index of the best move
-}
-
-//If result is defined, then evaluation should be D, Y0, or R0, and moveEvaluations and bestMove should be all null
-
 function evaluatePosition(positionStr) {
+    //If the position is invalid, analyzePosition will return "Invalid Move #__. Last Valid Position _______."
+    //If the position is won, analyzePosition will return "Won on Move #__. Ending Position ________."
+    //If the position is valid, but not won, analyzePosition will return a string of numbers, separated by spaces. 
+        //Positive numbers mean going to win n moves BEFORE board fills up
+        //Negative numbers mean going to lose n moves before board fills up. 
+        //-1000 means the move is invalid (column is full).
+
     let resStr = analyzePosition(positionStr);
-    console.log(resStr)
 
-    //Positive numbers mean going to win n moves BEFORE board fills up
-    //Negative numbers mean going to lose n moves before board fills up. 
 
-    //Board has 42 total spaces
+    let position = positionStr
+    let lastValidPosition = positionStr
+    let result = null;
+    let evaluation = null;
+    let moveEvaluations = new Array(7).fill(null);
+    let bestMove = null;
+
+    if (resStr.startsWith("Invalid")) {
+        lastValidPosition = resStr.slice(0, -1).split(" ").pop()
+
+        return {
+            position,
+            lastValidPosition,
+            result,
+            evaluation,
+            moveEvaluations,
+            bestMove,
+        }
+    }
+
+    if (resStr.startsWith("Won")) {
+        lastValidPosition = resStr.slice(0, -1).split(" ").pop()
+        result = lastValidPosition.length % 2 == 1 ? "Y" : "R";
+        evaluation = result;
+        
+        return {
+            position,
+            lastValidPosition,
+            result,
+            evaluation,
+            moveEvaluations,
+            bestMove,
+        }
+    }
+
+    //In Connect 4, Yellow always goes first. 
+    //Therefore, we can determine which color is next by checking if the number of moves played is even or odd. 
 
     let evaluations = resStr.split(" ").map(n => Number(n))
     
-    //In Connect 4, Yellow always goes first. 
-
-    //From the beginning of the game, yellow will win with 1 empty space. 
-
     let isYellowNext = positionStr.length % 2 == 0
     let movesRemaining = 42 - positionStr.length
 
     let halfMovesRemaining = Math.ceil(movesRemaining / 2)
 
-    let moveEvaluations = evaluations.map(n => {
+    moveEvaluations = evaluations.map(n => {
         if (n == -1000) {return null}
         if (n == 0) {return "D"}
-        if (n > 0) {return "Y" + (halfMovesRemaining - n + 1)}
-        if (n < 0) {return "R" + (halfMovesRemaining + n + 1)}
+        if (n > 0) {return (isYellowNext ? "Y" : "R") + (halfMovesRemaining - n + 1)}
+        if (n < 0) {return (isYellowNext ? "R" : "Y") + (halfMovesRemaining + n + 1)}
     })
 
-    console.log(evaluations)
 
+    //If no moves are available, the game is a draw. 
+    if (moveEvaluations.every(e => e == null)) {
+        return {
+            position,
+            lastValidPosition,
+            result: "D",
+            evaluation: "D",
+            moveEvaluations,
+            bestMove,
+        }
+    }
 
+    //Now we find our best move. 
+    //We want to delay the game as much as possible if we are losing, and end the game as soon as possible if we are winning.
+    //We will use this to set bestMove and evaluation. 
 
+    let bestMoveIndex = null;
+    let bestMoveEvaluation = null;
 
-    return moveEvaluations
+    function scoreEvaluation(evaluation) {
+        let whoWins = evaluation[0];
+        let howManyMoves = Number(evaluation.slice(1));
+
+        if (whoWins == "D") {return 0}
+        return (whoWins == (isYellowNext ? "Y" : "R")) ? 1/howManyMoves : -1/howManyMoves;
+    }
+
+    for (let i=0;i<moveEvaluations.length;i++) {
+        let moveEval = moveEvaluations[i];
+        if (moveEval == null) {continue} //Invalid move. 
+
+        if (bestMoveIndex == null || scoreEvaluation(moveEval) > bestMoveEvaluation) {
+            bestMoveIndex = i;
+            bestMoveEvaluation = scoreEvaluation(moveEval);
+        }
+    }
+
+    bestMove = bestMoveIndex + 1 //Columns 1 indexed, not 0. 
+    evaluation = moveEvaluations[bestMoveIndex];
+
+    return {
+        position,
+        lastValidPosition,
+        result,
+        evaluation,
+        moveEvaluations,
+        bestMove,
+    }
 
 
 }
@@ -70,15 +139,14 @@ function evaluatePosition(positionStr) {
 function loadBook(bookFilePath) {
     let arrayBuffer = new Uint8Array(fs.readFileSync(bookFilePath).buffer)
 
-
     //bookFilePath is technically irrelevant -
     //We are using the virtual file system, so we can call bookFilePath anything, as long as we pass the same string to Module._loadBook. 
+
     Module.FS.writeFile(bookFilePath, arrayBuffer)
 
     let allocatedMemory = allocateString(bookFilePath)
 
     let outputPointer = Module._loadBook(allocatedMemory)
-    // let str = Module.UTF8ToString(outputPointer)
 
     Module._free(allocatedMemory)
     Module._free(outputPointer)
@@ -136,15 +204,16 @@ Module.onRuntimeInitialized = function() {
         console.log(evaluatePosition("7")) //Red wins in 20 moves
 
 
-        console.log(evaluatePosition("44444433")) //Yellow wins in 2 moves
-        console.log(evaluatePosition("4444443")) //Yellow wins in 17 moves
-        console.log(evaluatePosition("44444432")) //Yellow wins in 17 moves
+        // console.log(evaluatePosition("44444433")) //Yellow wins in 2 moves
+        // console.log(evaluatePosition("4444443")) //Yellow wins in 17 moves
+        // console.log(evaluatePosition("44444432")) //Yellow wins in 17 moves
 
-        console.log(evaluatePosition("4444443322")) //Yellow wins next move
-        console.log(evaluatePosition("44444433225")) //Yellow won
+        // console.log(evaluatePosition("4444443322")) //Yellow wins next move
+        // console.log(evaluatePosition("44444433225")) //Yellow won
 
-        console.log(evaluatePosition("444444433225")) //Invalid Combo
+        // console.log(evaluatePosition("333333556444445666664255577777722222111111")) //Draw (game over)
 
+        // console.log(evaluatePosition("444444433225")) //Invalid Combo
 
 
     }, 100)
