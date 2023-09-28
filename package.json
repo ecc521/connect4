@@ -1,6 +1,6 @@
 {
   "name": "connect-4-solver",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Solver for 7x6 Connect 4 Games",
   "main": "bindings.js",
   "scripts": {

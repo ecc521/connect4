@@ -6,7 +6,7 @@ Exports loadBook, analyzePosition, and onInitialized
 
 Wait for onInitialized before calling other functions, or crashes may occur. 
 
-Loading a book is effectively mandatory to analyze positions with very few moves played (as otherwise, the search tree is extremely large and might take hours)
+Loading a book is effectively mandatory to analyze positions with <5 moves played (as otherwise, the search tree is large and could take an extremely long time to analyze)
 
 loadBook takes one parameter, the ArrayBuffer for the bytes of the book file. 
 
@@ -15,11 +15,14 @@ So "" is an empty board, "4424" is 4th column, 4th column, 2nd column, 4th colum
 
 Example Calls:
 
+```
 connect4solver = require("connect-4-solver")
-
-//Wait for connect4solver.onInitialized to resolve
-connect4solver.loadBook(new Uint8Array(fs.readFileSync("7x6.book").buffer))
-connect4solver.evaluatePosition("74637")
+connect4solver.onInitialized.then(() => {
+    connect4solver.loadBook(new Uint8Array(fs.readFileSync("7x6.book").buffer))
+    let evaluation = connect4solver.evaluatePosition("74637")
+    console.log(evaluation)
+})
+```
 
 This C++ source code is published under AGPL v3 license.
 
